@@ -1,149 +1,105 @@
-**README – Supplier Spend Analysis Report**
+# Supplier Spend Analysis Report – HealthShare NSW
+
+**Prepared by:** Ryan Nguyen  
+**Version:** v1.0  
+**Submission:** NSW Health Performance Analyst Assessment  
+**Date:** 27 July 2025  
 
 ---
 
-Prepared by: Ryan Nguyen
+## 📌 Purpose of the Report
 
-Version: v1.0
+This Power BI report was developed to help HealthShare NSW analyze supplier spending across multiple dimensions, including currency, supplier category, item classification, geography, and time. The report supports performance monitoring, spend optimization, and risk reduction by revealing trends, discount utilization, and key cost drivers.
 
-Submission: NSW Health Performance Analyst Assessment
+---
 
-Date: 27 July 2025
+## 🗂️ Report Contents & Navigation
 
+| Page | Title                        | Purpose                                                                 |
+|------|------------------------------|-------------------------------------------------------------------------|
+| 1    | **Overview Dashboard**       | High-level KPIs (Spend, Refunds, Invoices) with filters for date, location, and supplier |
+| 2    | **Spend by Supplier & Item** | Insights into top suppliers and spend patterns by item category/subcategory |
+| 3    | **Spend by Currency & Location** | FX impact, exchange rate behavior, and supplier distribution by region |
+| 4    | **Discounts & Payment Terms** | Identify unused discounts, assess payment term impact, and find saving opportunities |
+| 5    | **Trend Analysis**           | Visualize seasonal and weekly spend trends using matrix heatmaps and line charts |
+| 6    | **Tooltips & Drillthrough**  | Interactive details via hover and drillthrough for suppliers and categories |
 
+---
 
-##### **Purpose of the Report**
+## 🧱 Data Model – Star Schema
 
-This report was developed to help NSW Health analyze supplier spending across various dimensions such as currency, supplier category, item classification, geography, and time. The report supports performance monitoring, spend optimization, and risk reduction through transparency of trends, discounts, and cost drivers.
+The model follows a clean **star schema** centered on the `InvoiceLineItem` fact table.
 
+### 🧾 Fact Table:
+- **InvoiceLineItem**: Transaction-level data including spend, refunds, item and supplier info, and currency
 
+### 🧩 Dimension Tables:
+- **Invoice**: Invoice ID, purchasing location, discounts
+- **Item**: Item ID, category, subcategory
+- **Location**: City, state, country/region
+- **DateTable**: Calendar table with Year, Month, Weekday
+- **Currency**: Currency abbreviation and ID
+- **ExchangeRate**: FX rates by date and currency (referenced via DAX only)
 
+> 💡 Note: `ExchangeRate` is **not physically related** to the model. It's accessed in DAX through `TOPN` and `FILTER` to retrieve the most recent rate on or before `PaidDate`.
 
+---
 
-##### **Report Contents \& Navigation**
+## 🧮 Key Calculated Measures
 
-Page | Title                             | Purpose
+| Measure                  | Description                                                                 |
+|--------------------------|-----------------------------------------------------------------------------|
+| **Gross Amount (AUD)**   | Total spend before applying refunds or discounts                           |
+| **Net Amount (AUD)**     | Spend after applying `RefundPercent`                                        |
+| **YTD Amount**           | Year-to-date spend via `DATESYTD(DateTable[Date])`                          |
+| **AvgMonthlySpend**      | Net spend divided by number of distinct months                              |
+| **AvgSpendPerSupplier**  | Gross spend divided by distinct supplier count                              |
+| **Effective Exchange Rate** | Weighted average FX rate applied to NZD transactions                    |
 
------|-----------------------------------|-----------------------------------------------------------
+---
 
-1    | Overview Dashboard                | High-level KPIs (Spend, Refunds, Invoices) with filters for date, location, and supplier
+## 📌 Assumptions
 
-2    | Spend by Supplier \& Item          | Insights into top suppliers and spend patterns by item category and subcategory
+- **Currency Conversion**: NZD converted to AUD using the most recent FX rate ≤ `PaidDate`; AUD uses 1.0.
+- **Refund Calculation**: Derived from `DiscountPercent` and applied per line item.
+- **Data Exclusion**:
+  - Transactions from 2012 (3 rows) removed due to outlier behavior.
+  - Null or unmatched FX rates excluded from calculations.
+- **YTD Calculation**: Defaults to the current year if no date filter is applied.
 
-3    | Spend by Currency \& Location      | FX impact, exchange rate behavior, and supplier distribution by region
+---
 
-4    | Discounts \& Payment Terms         | Identify unused discounts, payment terms impact, and opportunities for savings
+## 🎨 Visual Design Choices
 
-5    | Trend Analysis                    | Spot seasonal and weekly spend behavior with interactive trend breakdowns
+- **Color Scheme**: Blue for Direct, Purple for Indirect, Orange for Other
+- **Typography**: Uniform font size and weight for headers and KPIs
+- **Theme**: Dark blue background aligning with NSW Health brand
+- **Watermark/Footer**:  
+  `"Report prepared by Ryan Nguyen | v1.0 | NSW Health Performance Analyst Assessment"`
 
-6    | Tooltips               		 | 
+---
 
+## 🧭 Usage Instructions
 
+- Use **date slicers** on each page to adjust the time period
+- Click on **supplier/category names** in visuals to filter other charts
+- Hover on **maps/matrix visuals** for additional tooltip insights
+- Drillthrough enabled for **Supplier Name** and **Item Category**
 
-##### **Data Model: Star Schema**
+---
 
-Your model follows a clean star schema centered on InvoiceLineItem (Fact Table), with surrounding dimension tables:
+## 🚀 Future Enhancements
 
+- Add **forecasting trends** using exponential smoothing
+- Develop a **supplier scoring model** based on reliability, discounts, and delivery
+- Enable **anomaly detection alerts** for budget breaches and irregular spend
 
+---
 
-**Fact Table**
+## 📅 Additional Note
 
-\- InvoiceLineItem: Contains transaction-level details including spend, refunds, item ID, supplier info, and currency
+A custom `DateTable` was created using DAX to support time intelligence. It includes:
+- `Date`, `Year`, `Month`, `Month Number`, `Weekday`  
+This enables dynamic filtering, aggregation, and visualizations throughout the report.
 
-
-
-**Dimension Tables**
-
-\- Invoice: Invoice ID, purchasing location, discounts
-
-\- Item: Item ID, category, sub-category
-
-\- Location: City, country/region, state
-
-\- DateTable: Full calendar with Year, Month, Weekday
-
-\- Currency: Currency abbreviation and ID
-
-\- ExchangeRate: Historical FX rates by date and currency (linked indirectly via calculated column)
-
-
-
-Note: ExchangeRate table is not directly related to the model — it's referenced via DAX inside a calculated column (ExchangeRateAUD) that uses TOPN and FILTER to get the most recent FX rate ≤ PaidDate.
-
-
-
-**Key Calculated Measures**
-
-Measure                  | Description
-
-------------------------|----------------------------------------------------
-
-Gross Amount (AUD)      | Total spend before discount or refund
-
-Net Amount (AUD)        | Spend after applying RefundPercent
-
-YTD Amount              | Net spend calculated via DATESYTD(DateTable\[Date])
-
-AvgMonthlySpend         | Divides net spend by unique months in selection
-
-AvgSpendPerSupplier     | Gross spend divided by distinct InvoiceID values
-
-Effective Exchange Rate | Average FX rate applied to NZD transactions
-
-
-
-**Assumptions**
-
-\- Currency Conversion: NZD to AUD based on most recent rate on or before PaidDate; AUD transactions use rate of 1.
-
-\- Discount Logic: Calculated from DiscountPercent and used to derive Refunds at the line item level.
-
-\- Data Exclusion:
-
-&nbsp; - Transactions from 2012 (3 total rows) were excluded due to irrelevance and outlier behavior.
-
-&nbsp; - Exchange rate rows with null or unmatched dates were omitted in calculations.
-
-\- YTD Calculation: Uses the filtered date context; defaults to the current year if no slicer applied.
-
-
-
-**Visual Design Choices**
-
-\- Color Consistency: Blue for Direct, Purple for Indirect, Orange for Other, etc.
-
-\- Font Consistency: Uniform font size and weight for headers and KPI cards
-
-\- Theming: Dark blue background applied for contrast and NSW identity
-
-\- Watermark/Footer:
-
-&nbsp; "Report prepared by Ryan Nguyen | v1.0 | NSW Health Performance Analyst Assessment"
-
-
-
-**Usage Instructions**
-
-\- Use date slicers at the top of each page to adjust reporting periods.
-
-\- Click on supplier/category names in visual legends or tables to filter linked visuals.
-
-\- Hover on maps and matrix visuals to reveal tooltips.
-
-\- Drill-through enabled on supplier name and item category for detail investigation.
-
-
-
-**Future Enhancements** 
-
-\- Add a forecasting trend line using exponential smoothing
-
-\- Score suppliers on reliability, delivery, and discount usage
-
-\- Add alert cards for anomalies (e.g., over-budget months)
-
-
-
-**Additional Note:**
-
-A new table called `DateTable` was created using DAX to support time intelligence functions. This table includes fields such as Date, Year, Month, Month Number, and Weekday, enabling dynamic filtering, aggregation, and temporal trend analysis across all report pages.
+---
